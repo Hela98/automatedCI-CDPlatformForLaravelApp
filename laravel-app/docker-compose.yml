@@ -29,12 +29,22 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    networks:
+    volumes:
       - ./:/var/www
       - ./nginx/conf.d/:/etc/nginx/conf.d
     networks:
       - app-network
+    depends_on:
+      - app
+      - redis
+      - db
 
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    networks:
+      - app-network
   
   db:
     image: postgres
@@ -48,11 +58,55 @@ services:
       POSTGRES_PASSWORD: my_password
       
     volumes:
-      - ./dbdata:/var/lib/postgresql/ #dbdata:/var/lib/mysql/
-      - ./postgres/my.cnf:/etc/postgresql/my.cnf #./mysql/my.cnf:/etc/mysql/my.cnf
+      - ./dbdata:/var/lib/postgresql/ 
+      - ./postgres/my.cnf:/etc/postgresql/my.cnf 
     networks:
       - app-network
+
+  mysql:
+    image: mysql
+    hostname: mysql
+    expose:
+      - 3306
+    environment: 
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_USER=sonarqube
+      - MYSQL_PASSWORD=sonarqube
+      - MYSQL_DATABASE=sonarqube
+    volumes:
+      - ./mysql:/var/lib/mysql 
+    restart: unless-stopped
+    container_name: mysql
+
     
+  jenkins:
+    image: jenkins/jenkins
+    container_name: jenkins
+    ports:
+      - 10081:8080
+      - 50000:50000
+    volumes: 
+      - ./jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+
+  sonar:
+    image: webdizz/sonarqube
+    ports:
+      - 10082:9000
+    depends_on: 
+      - mysql
+    environment: 
+      - SONAR_JDBC_URL=jdbc:mysql://mysql:3306/sonarqube?useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true
+      - SONAR_DB_USERNAME=sonarqube
+      - SONAR_DB_PASSWORD=sonarqube
+    volumes:
+      - ./sonar:/opt/sonar
+    restart: unless-stopped
+    container_name: sonar
+
+  
     
 
 networks:
@@ -62,3 +116,4 @@ networks:
 volumes:
     dbdata:
         driver: local
+  
