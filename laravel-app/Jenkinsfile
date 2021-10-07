@@ -28,7 +28,7 @@ pipeline {
             
             withCredentials([string(credentialsId:'docker_hub', variable: 'PASSWORD')]){
                 sh "docker login -u hela98 -p ${PASSWORD}"
-                sh "docker push hela98/laravelapp_images:latest"
+                sh "docker-compose push hela98/laravelapp_images:latest"
             }
       }
     }
