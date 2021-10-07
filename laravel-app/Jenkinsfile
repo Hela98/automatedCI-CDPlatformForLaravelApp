@@ -37,6 +37,25 @@ pipeline {
         sh "docker rmi -f $registry:latest"
       }
     }
+    stage('Deploy to kBs'){
+            steps{
+                sh "chmod +x changeTag.sh" 
+                sh"./changeTag.sh ${DOCKER_TAG}"
+                sshagent (['hela-machine']){
+                    sh "scp -o StrictHostKeyChecking=no services.yml laravel-app-pod.yml Hela@70.37.48.248:/home/Hela/"
+      
+                    script{
+                        try{
+                            sh "ssh Hela@70.37.48.248 kubectl apply -f"
+
+                        }catch(error){
+                            sh "ssh Hela@70.37.48.248 kubectl create -f."
+                        }
+                        
+                    }
+                }
+            }
+        }
     
   }
     
